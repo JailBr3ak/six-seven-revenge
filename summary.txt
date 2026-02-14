@@ -1,0 +1,50 @@
+== six-seven-revenge(2) PWN Challenge Summary ==
+
+Target: nc chall.0xfun.org 62502
+
+== Binary ==
+- 64-bit PIE, Full RELRO, Canary, NX — all protections ON
+- Libc: glibc 2.42 (no __free_hook/__malloc_hook)
+- Seccomp: KILL default, only allows:
+    open(2), openat(257), read(0), write(1), close(3),
+    fstat(5), mmap(9), mprotect(10), brk(12), exit(60), exit_group(231)
+  => NO execve. Must use ORW (open/read/write) to read flag.
+
+== Functions ==
+Heap note manager, 16 slots (indices 0-15).
+Global arrays: notes[16] (pointers at 0x4060), sizes[16] (ints at 0x40e0)
+
+1. Create (option 1):
+   - Index 0-15, must be empty (notes[idx]==NULL)
+   - Size 1-0x500
+   - malloc(size), store ptr+size, read(0, ptr, size)
+
+2. Delete (option 2):
+   - Index 0-15, must exist
+   - free(ptr), notes[idx]=NULL, sizes[idx]=0
+   - CLEAN: no UAF
+
+3. Read (option 3):
+   - Index 0-15, must exist
+   - write(1, notes[idx], sizes[idx])
+
+4. Edit (option 4):
+   - Index 0-15, must exist
+   - read(0, notes[idx], sizes[idx]) -> retval
+   - if retval >= 0: notes[idx][retval] = '\0'
+
+== VULNERABILITY ==
+Off-by-one null byte overflow in edit_note:
+  - read() returns number of bytes read
+  - If you send exactly sizes[idx] bytes, retval == sizes[idx]
+  - Then notes[idx][sizes[idx]] = 0 writes ONE BYTE PAST the chunk data
+  - This corrupts the next chunk's header (clears PREV_IN_USE bit of next chunk size)
+
+== EXPLOIT STRATEGY ==
+1. Off-by-one null byte -> poison null byte attack -> chunk overlapping
+2. Overlapping chunks -> leak libc (unsorted bin fd/bk) + heap addr
+3. Arbitrary write via tcache poisoning (glibc 2.42 has safe-linking, need heap leak to bypass)
+4. No execve -> ORW shellcode or ROP chain:
+   - Leak stack via environ pointer in libc
+   - ROP: openat("flag") -> read(fd, buf, size) -> write(1, buf, size)
+   - Or: mprotect + shellcode approach
