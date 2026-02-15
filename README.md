@@ -1,4 +1,4 @@
-# six-seven-revenge
+# six-seven-revenge CTF
 
 A heap-based pwn challenge solution featuring off-by-one vulnerability exploitation 
 
