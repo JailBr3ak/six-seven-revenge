@@ -58,12 +58,3 @@ This solution leverages GLM-5 advanced reasoning to:
 
 ```
 nc chall.0xfun.org 62502
-```
-
-## Author
-
-Solved with GLM-5 assistance
-
-## License
-
-Educational use only
