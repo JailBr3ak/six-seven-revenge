@@ -1,6 +1,6 @@
 # six-seven-revenge
 
-A heap-based pwn challenge solution featuring off-by-one vulnerability exploitation with GLM-5.
+A heap-based pwn challenge solution featuring off-by-one vulnerability exploitation 
 
 ## Challenge Description
 
